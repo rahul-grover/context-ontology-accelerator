@@ -1135,6 +1135,7 @@ export class SourcesStack extends SCLStack {
           )
         : ecs.ContainerImage.fromAsset(Paths.root, {
             file: "packages/sources/database/enrichment/Dockerfile",
+            platform: cdk.aws_ecr_assets.Platform.LINUX_AMD64,
           });
 
     dbEnrichmentTaskDef.addContainer("DbEnrichmentContainer", {
@@ -1871,6 +1872,7 @@ export class SourcesStack extends SCLStack {
           )
         : ecs.ContainerImage.fromAsset(Paths.root, {
             file: "packages/sources/documents/kg-build/Dockerfile",
+            platform: cdk.aws_ecr_assets.Platform.LINUX_AMD64,
           });
 
     const batchInferenceRole = new iam.Role(this, "SourcesBatchInferenceRole", {
