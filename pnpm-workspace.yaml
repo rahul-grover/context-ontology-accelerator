@@ -17,6 +17,13 @@ allowBuilds:
 # config. Do not re-nest them.
 blockExoticSubdeps: true
 trustPolicy: no-downgrade
+# v0.3.2 pins these versions. Verified their registry SHA-512 integrity against
+# pnpm-lock.yaml on 2026-09-24. Keep exceptions version-scoped; retain the policy
+# for every other dependency (pnpm 11 also checks this during `exec`).
+trustPolicyExclude:
+  - pnpm@10.34.5
+  - semver@6.3.1
+  - undici-types@6.21.0
 
 # Quarantine newly-published packages for 7 days before allowing install.
 # The unit is MINUTES as a number (7 * 24 * 60). A duration string like "7 days" is

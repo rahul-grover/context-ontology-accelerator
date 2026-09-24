@@ -815,12 +815,30 @@ class TestGetSourceMetricsBestEffort:
 
 
 class TestPresignS3ClientConfig:
-    """Regression: presign client must use SigV4. A no-Config client falls back
-    to the deprecated SigV2 presigner in pre-2014 regions and can't presign at
-    all in SigV4-only regions (us-east-2, eu-*, ap-*, ca-*, me-*, af-*)."""
+    """Regression: presign client must use SigV4 and a regional endpoint.
+
+    A no-Config client can use SigV2 or emit the legacy global S3 endpoint.
+    Outside us-east-1 that endpoint redirects PUTs without CORS headers, so a
+    browser reports the upload as a network failure.
+    """
 
     def test_get_s3_pins_sigv4(self):
         from coa_sources.api import sources_handler
 
         sources_handler._s3 = None  # reset cold-start singleton
         assert sources_handler._get_s3().meta.config.signature_version == "s3v4"
+
+    def test_get_s3_uses_regional_virtual_host(self, monkeypatch):
+        from coa_sources.api import sources_handler
+
+        monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+        monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+        monkeypatch.setattr(sources_handler, "_AWS_REGION", "ap-southeast-2")
+        monkeypatch.setattr(sources_handler, "_s3", None)
+
+        url = sources_handler._get_s3().generate_presigned_url(
+            "put_object",
+            Params={"Bucket": "coa-upload-test", "Key": "test.txt", "ContentType": "text/plain"},
+        )
+
+        assert url.startswith("https://coa-upload-test.s3.ap-southeast-2.amazonaws.com/test.txt?")

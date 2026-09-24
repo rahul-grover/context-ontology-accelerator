@@ -196,12 +196,17 @@ def _get_sqs():
 def _get_s3():
     global _s3
     if _s3 is None:
-        # Pin SigV4 for presigned document-upload URLs: a no-Config client
-        # falls back to the deprecated SigV2 presigner in pre-2014 regions,
-        # and SigV2-only regions can't presign at all. Only ContentType is
-        # signed (see document_routes._handle_upload_urls), so browser PUTs
-        # stay valid under SigV4.
-        _s3 = boto3.client("s3", region_name=_AWS_REGION, config=Config(signature_version="s3v4"))
+        # Pin SigV4 and virtual-host addressing for presigned document-upload
+        # URLs. Without virtual addressing botocore may emit the legacy global
+        # endpoint (bucket.s3.amazonaws.com) outside us-east-1. S3 answers that
+        # browser PUT with a 307 redirect lacking CORS headers, which fetch()
+        # reports as a generic network failure. Only ContentType is signed (see
+        # document_routes._handle_upload_urls), so browser PUTs remain valid.
+        _s3 = boto3.client(
+            "s3",
+            region_name=_AWS_REGION,
+            config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+        )
     return _s3
 
 
