@@ -88,13 +88,17 @@ _s3 = None
 def _get_s3():
     global _s3
     if _s3 is None:
-        # Force SigV4. Under the default SigV2 signing, ``Content-Type`` is part
-        # of the string-to-sign, so a presigned PUT (which signs an empty
-        # Content-Type) is rejected the moment the browser sends
-        # ``Content-Type: text/turtle`` (SignatureDoesNotMatch / 403). SigV4 only
-        # signs declared headers, so the browser may send any Content-Type — which
-        # is what the presign_proposal_artifact_put contract relies on.
-        _s3 = boto3.client("s3", region_name=REGION, config=Config(signature_version="s3v4"))
+        # Force SigV4 and regional virtual-host addressing. Without virtual
+        # addressing botocore may presign against the legacy global endpoint
+        # outside us-east-1. S3 then redirects browser GET/PUT requests without
+        # CORS headers, which fetch() reports as a generic network failure.
+        # SigV4 also lets the presigned PUT contract accept the browser's
+        # Content-Type header without producing SignatureDoesNotMatch.
+        _s3 = boto3.client(
+            "s3",
+            region_name=REGION,
+            config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+        )
     return _s3
 
 
